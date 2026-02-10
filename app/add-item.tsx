@@ -1,11 +1,35 @@
 import { useState } from "react";
-import { View, Text, TextInput, Pressable, StyleSheet } from "react-native";
+import { View, Text, TextInput, Pressable, StyleSheet, Alert } from "react-native";
 import { useRouter } from "expo-router";
+import { addPantryItem } from "./storage/pantry";
 
 export default function AddItemScreen() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [qty, setQty] = useState("1");
+  const [saving, setSaving] = useState(false);
+
+  async function onSave() {
+    const cleanName = name.trim();
+    const cleanQty = Number(qty);
+
+    if (!cleanName) {
+      Alert.alert("Missing name", "Please enter an item name.");
+      return;
+    }
+    if (!Number.isFinite(cleanQty) || cleanQty <= 0) {
+      Alert.alert("Invalid quantity", "Quantity must be a number greater than 0.");
+      return;
+    }
+
+    try {
+      setSaving(true);
+      await addPantryItem({ name: cleanName, qty: cleanQty });
+      router.back();
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <View style={styles.container}>
@@ -27,14 +51,8 @@ export default function AddItemScreen() {
         style={styles.input}
       />
 
-      <Pressable
-        style={styles.button}
-        onPress={() => {
-          // next step: save into storage
-          router.back();
-        }}
-      >
-        <Text style={styles.buttonText}>Save</Text>
+      <Pressable style={[styles.button, saving && { opacity: 0.6 }]} onPress={onSave} disabled={saving}>
+        <Text style={styles.buttonText}>{saving ? "Saving..." : "Save"}</Text>
       </Pressable>
     </View>
   );
